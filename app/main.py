@@ -30,8 +30,14 @@ from schemas import (
 from config import OPENAI_MODEL, QWEN_MODEL_ID, SKILLS_CSV_PATH, VALID_DIFFICULTY
 from extractor import extract_content
 from extractor import build_digest
-from prompts import SKILL_TAXONOMY, SKILLS_BLOCK, ground_skills, split_multi
+from prompts import SKILL_TAXONOMY, SKILLS_BLOCK, ground_skills
 from scorer import score_file, aggregate, readiness_check
+
+
+def split_multi(v):
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return []
+    return [x.strip() for x in re.split(r"\s*\|\s*|\s*;\s*", str(v)) if x.strip()]
 
 GOLD_SET_PATH = os.getenv(
     "GOLD_SET_PATH",
