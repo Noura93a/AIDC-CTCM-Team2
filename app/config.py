@@ -48,7 +48,7 @@ RAG_RRF_K          = 20
 
 # ── vLLM (Qwen) ───────────────────────────────────────────────────────────────
 MAX_MODEL_LEN          = 8192
-GPU_MEM_UTIL           = 0.12
+GPU_MEM_UTIL           = 0.85
 ENFORCE_EAGER          = True
 USE_STRUCTURED_OUTPUTS = False
 SINGLE_REQUEST_TEST_N  = 3
