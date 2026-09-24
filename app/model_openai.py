@@ -1,6 +1,13 @@
 """
 model_openai.py — OpenAI backend (gpt-4o-mini or any OpenAI model).
-Mirrors the exact logic from the working Colab notebook (openai.ipynb).
+
+3-pass flow:
+  pass 1 → full 136-skill list → get tags + initial skills
+  pass 2 → RAG using tags from pass 1 → re-pick skills from relevant pool
+  pass 3 → difficulty refinement
+
+RAG on pass 2 only (after tags are known) gives much better pool recall
+than RAG on pass 1 (no tags = weak retrieval signal).
 """
 from __future__ import annotations
 import base64, io, json, re, time
@@ -10,11 +17,11 @@ from config import (
     OPENAI_MODEL, OPENAI_API_KEY,
     MAX_IMAGES_PER_FILE, DIFF_EXCERPT_CHARS,
     OPENAI_INPUT_COST_PER_1K, OPENAI_OUTPUT_COST_PER_1K,
-    VALID_DIFFICULTY, MAX_NEW_TOKENS,
+    VALID_DIFFICULTY, MAX_NEW_TOKENS, RAG_ENABLED,
 )
 from prompts import (
     SYSTEM_PROMPT, USER_TEMPLATE, DIFF_SYSTEM_PROMPT, DIFF_USER_TEMPLATE,
-    format_label, ground_skills, norm_skill,
+    format_label, ground_skills, build_rag_system_prompt,
 )
 from extractor import build_digest
 
@@ -51,7 +58,8 @@ def _parse_json(raw: str) -> tuple[dict, bool]:
 def _norm_label(t: str) -> str:
     t = str(t).lower().replace("&", " and ")
     t = re.sub(r"[^a-z0-9]+", " ", t).strip()
-    toks = [w[:-1] if len(w)>3 and w.endswith("s") and not w.endswith(("ss","is","us")) else w
+    toks = [w[:-1] if len(w)>3 and w.endswith("s")
+            and not w.endswith(("ss","is","us")) else w
             for w in t.split()]
     return " ".join(toks)
 
@@ -68,7 +76,8 @@ def _normalize_output(p: dict) -> dict:
             seen.add(k); clean.append(t[:80])
     diff = str(p.get("difficulty_level", "")).strip().title()
     if diff not in VALID_DIFFICULTY:
-        diff = next((d for d in VALID_DIFFICULTY if diff[:3] and d.startswith(diff[:3])), diff)
+        diff = next((d for d in VALID_DIFFICULTY
+                     if diff[:3] and d.startswith(diff[:3])), diff)
     conf = p.get("confidence")
     try:
         conf = float(conf)
@@ -91,44 +100,86 @@ def _normalize_output(p: dict) -> dict:
     }
 
 
-def run_file(extracted: dict, filename: str) -> dict:
-    """Tag one file via OpenAI. Returns raw dict with parsed output + token counts."""
-    client = get_client()
+def _build_messages(extracted: dict, system_prompt: str) -> list:
     ext = extracted["content_type"]
     digest, note = build_digest(extracted["text"], ext)
-    images = extracted["images"][:MAX_IMAGES_PER_FILE]
+    images   = extracted["images"][:MAX_IMAGES_PER_FILE]
     img_note = f"\n{len(images)} image(s) attached -- read them too." if images else ""
-
     user_text = USER_TEMPLATE.format(
-        fmt=format_label(ext), note=note, img_note=img_note, digest=digest)
-
+        fmt=format_label(ext), note=note,
+        img_note=img_note, digest=digest)
     content = []
     for img in images:
         content.append({"type": "image_url",
-                        "image_url": {"url": _image_to_data_url(img), "detail": "auto"}})
+                        "image_url": {"url": _image_to_data_url(img),
+                                      "detail": "auto"}})
     content.append({"type": "text", "text": user_text})
+    return [
+        {"role": "system", "content": system_prompt},
+        {"role": "user",   "content": content},
+    ]
+
+
+def run_file(extracted: dict, filename: str) -> dict:
+    """
+    3-pass flow:
+      pass 1 → full skill list → get tags + initial skills
+      pass 2 → RAG using tags  → re-pick skills from relevant pool
+      pass 3 → difficulty refinement
+    """
+    client = get_client()
+    ext    = extracted["content_type"]
+
+    # ── pass 1: full skill list → tags + initial skills ───────────────────────
+    messages = _build_messages(extracted, SYSTEM_PROMPT)
 
     t0 = time.perf_counter()
     resp = client.chat.completions.create(
         model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": content},
-        ],
+        messages=messages,
         max_tokens=MAX_NEW_TOKENS,
         temperature=0,
     )
     latency = time.perf_counter() - t0
 
-    raw_text = resp.choices[0].message.content or ""
-    obj, ok = _parse_json(raw_text)
-    parsed = _normalize_output(obj)
-    prompt_tok  = resp.usage.prompt_tokens
-    compl_tok   = resp.usage.completion_tokens
+    raw_text   = resp.choices[0].message.content or ""
+    obj, ok    = _parse_json(raw_text)
+    parsed     = _normalize_output(obj)
+    prompt_tok = resp.usage.prompt_tokens
+    compl_tok  = resp.usage.completion_tokens
 
-    # Pass 2: difficulty refinement
-    half = DIFF_EXCERPT_CHARS // 2
-    excerpt = (digest[:half] + "\n[...]\n" + digest[-half:]) if len(digest) > DIFF_EXCERPT_CHARS else digest
+    # ── pass 2: RAG using tags from pass 1 → re-pick skills ──────────────────
+    rag_pool = None
+    if RAG_ENABLED and parsed["predicted_tags"]:
+        from rag import retrieve_skills
+        rag_pool = retrieve_skills(
+            content_text=extracted["text"],
+            tags=parsed["predicted_tags"],
+            summary=parsed["content_summary"],
+        )
+        rag_system    = build_rag_system_prompt(rag_pool)
+        skill_msgs    = _build_messages(extracted, rag_system)
+        t_rag         = time.perf_counter()
+        skill_resp    = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=skill_msgs,
+            max_tokens=MAX_NEW_TOKENS,
+            temperature=0,
+        )
+        latency      += time.perf_counter() - t_rag
+        skill_obj, _  = _parse_json(skill_resp.choices[0].message.content or "")
+        skill_parsed  = _normalize_output(skill_obj)
+        if skill_parsed["predicted_skills"]:
+            parsed["predicted_skills"] = skill_parsed["predicted_skills"]
+            parsed["n_halluc_skills"]  = skill_parsed["n_halluc_skills"]
+        prompt_tok += skill_resp.usage.prompt_tokens
+        compl_tok  += skill_resp.usage.completion_tokens
+
+    # ── pass 3: difficulty refinement ─────────────────────────────────────────
+    digest, _ = build_digest(extracted["text"], ext)
+    half      = DIFF_EXCERPT_CHARS // 2
+    excerpt   = (digest[:half] + "\n[...]\n" + digest[-half:]
+                 if len(digest) > DIFF_EXCERPT_CHARS else digest)
     diff_resp = client.chat.completions.create(
         model=OPENAI_MODEL,
         messages=[
@@ -140,11 +191,11 @@ def run_file(extracted: dict, filename: str) -> dict:
         temperature=0,
     )
     diff_obj, _ = _parse_json(diff_resp.choices[0].message.content or "")
-    diff_label = str(diff_obj.get("difficulty_level", "")).strip().title()
+    diff_label  = str(diff_obj.get("difficulty_level", "")).strip().title()
     if diff_label in VALID_DIFFICULTY:
         parsed["difficulty_level"] = diff_label
-    prompt_tok  += diff_resp.usage.prompt_tokens
-    compl_tok   += diff_resp.usage.completion_tokens
+    prompt_tok += diff_resp.usage.prompt_tokens
+    compl_tok  += diff_resp.usage.completion_tokens
 
     cost = (prompt_tok / 1000 * OPENAI_INPUT_COST_PER_1K
             + compl_tok / 1000 * OPENAI_OUTPUT_COST_PER_1K)
@@ -157,4 +208,5 @@ def run_file(extracted: dict, filename: str) -> dict:
         "completion_tokens":  compl_tok,
         "latency_sec":        round(latency, 4),
         "est_cost_usd":       round(cost, 6),
+        "rag_pool":           rag_pool,
     }

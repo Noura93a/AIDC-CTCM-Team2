@@ -25,7 +25,7 @@ MAX_ROWS_PER_SHEET      = 200
 ZIP_MAX_MEMBERS         = 15
 
 # ── prompt ────────────────────────────────────────────────────────────────────
-MAX_PROMPT_CHARS  = 6000     # raised from 1500 to fix truncation accuracy loss
+MAX_PROMPT_CHARS  = 6000
 MAX_TAGS          = 12
 MAX_NEW_TOKENS    = 900
 N_OUTPUT_SKILLS   = 4
@@ -36,22 +36,32 @@ SKILLS_CSV_PATH = os.getenv(
     os.path.join(os.path.dirname(__file__), "../data/hrsd_data_ai_taxonomy.csv")
 )
 
+# ── RAG skill retrieval ───────────────────────────────────────────────────────
+RAG_ENABLED        = True
+RAG_EMBED_MODEL_ID = "BAAI/bge-m3"
+RAG_POOL_K         = 15
+RAG_CHUNK_CHARS    = 1200
+RAG_CHUNK_OVERLAP  = 200
+RAG_TAG_WEIGHT     = 1.5
+RAG_CONTENT_WEIGHT = 1.0
+RAG_RRF_K          = 20
+
 # ── vLLM (Qwen) ───────────────────────────────────────────────────────────────
-MAX_MODEL_LEN        = 8192
-GPU_MEM_UTIL         = 0.85
-ENFORCE_EAGER        = True
+MAX_MODEL_LEN          = 8192
+GPU_MEM_UTIL           = 0.12
+ENFORCE_EAGER          = True
 USE_STRUCTURED_OUTPUTS = False
 SINGLE_REQUEST_TEST_N  = 3
 
 # ── scoring ───────────────────────────────────────────────────────────────────
-GPU_COST_PER_HOUR_USD   = 0.35          # for Qwen; 0 for OpenAI (billed per token)
-OPENAI_INPUT_COST_PER_1K  = 0.000150   # gpt-4o-mini input $/1k tokens
-OPENAI_OUTPUT_COST_PER_1K = 0.000600   # gpt-4o-mini output $/1k tokens
-VALID_DIFFICULTY        = ["Beginner", "Intermediate", "Advanced"]
-COMPUTE_SEMANTIC_METRICS = True
-SCORING_EMBED_MODEL_ID  = "BAAI/bge-m3"
-TAG_SIM_THRESHOLD       = 0.78
+GPU_COST_PER_HOUR_USD     = 0.35
+OPENAI_INPUT_COST_PER_1K  = 0.000150
+OPENAI_OUTPUT_COST_PER_1K = 0.000600
+VALID_DIFFICULTY          = ["Beginner", "Intermediate", "Advanced"]
+COMPUTE_SEMANTIC_METRICS  = True
+SCORING_EMBED_MODEL_ID    = "BAAI/bge-m3"
+TAG_SIM_THRESHOLD         = 0.72
 
 # ── misc ──────────────────────────────────────────────────────────────────────
 DIFF_EXCERPT_CHARS = 1500
-REPETITION_PENALTY = 1.05    # prevents looping on repetitive content (e.g. SQL function lists)
+REPETITION_PENALTY = 1.05
