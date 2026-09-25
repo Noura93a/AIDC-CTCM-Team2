@@ -12,7 +12,7 @@ POST /v1/benchmark             run models on a list of files
 Models supported
 ----------------
   openai  → gpt-4o-mini via api.openai.com
-  qwen    → Qwen2.5-VL-3B-AWQ via vLLM on GPU
+  qwen    → Qwen2.5-VL-3B-AWQ via vLLM AsyncLLMEngine on GPU
 
 RAG
 ---
@@ -75,6 +75,9 @@ async def lifespan(app: FastAPI):
         from rag import load_rag_index
         load_rag_index()
         print("[startup] RAG index ready")
+
+    # Qwen AsyncLLMEngine loads on first request
+    # avoids CUDA init conflict during async lifespan
 
     yield
     print("[shutdown] bye")
