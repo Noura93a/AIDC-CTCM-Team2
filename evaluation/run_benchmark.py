@@ -78,7 +78,7 @@ for model_key in MODELS:
                 f"{args.server}/v1/tag/upload",
                 files={"file": (fname, fh)},
                 data={"model": model_key},
-                timeout=180,
+                timeout=600,
             )
         elapsed = time.perf_counter() - t0
         if resp.status_code != 200:

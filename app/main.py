@@ -42,6 +42,34 @@ from extractor import extract_content, build_digest
 from prompts import SKILL_TAXONOMY, SKILLS_BLOCK, ground_skills
 from scorer import score_file, aggregate, readiness_check
 
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
+import time
+
+import threading
+
+_health_ok = True
+
+
+# metrics counters — add near top of main.py after imports
+REQUEST_COUNT = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'status']
+)
+REQUEST_LATENCY = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request latency',
+    ['endpoint', 'model']
+)
+
+@app.get("/metrics", tags=["meta"])
+def metrics():
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    )
+
 GOLD_SET_PATH = os.getenv(
     "GOLD_SET_PATH",
     os.path.join(os.path.dirname(__file__), "../data/Golden-set-Reviewed.xlsx")
