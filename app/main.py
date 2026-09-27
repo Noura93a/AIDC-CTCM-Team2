@@ -27,7 +27,7 @@ Run
 from __future__ import annotations
 import os, math, time, tempfile, requests as _requests, re as _re
 import pandas as pd
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from contextlib import asynccontextmanager
 
 from schemas import (
@@ -44,31 +44,22 @@ from scorer import score_file, aggregate, readiness_check
 
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
-import time
-
-import threading
-
-_health_ok = True
 
 
 # metrics counters — add near top of main.py after imports
 REQUEST_COUNT = Counter(
-    'http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status']
-)
-REQUEST_LATENCY = Histogram(
-    'http_request_duration_seconds',
-    'HTTP request latency',
-    ['endpoint', 'model']
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "endpoint", "status"],
 )
 
-@app.get("/metrics", tags=["meta"])
-def metrics():
-    return Response(
-        content=generate_latest(),
-        media_type=CONTENT_TYPE_LATEST
-    )
+REQUEST_LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request latency",
+    ["endpoint"],
+)
+
+
 
 GOLD_SET_PATH = os.getenv(
     "GOLD_SET_PATH",
@@ -113,6 +104,37 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Content Tagging & Competency Mapping API",
               version="1.0.0", lifespan=lifespan)
 
+@app.middleware("http")
+async def prometheus_metrics(request: Request, call_next):
+    start = time.perf_counter()
+    status = "500"
+
+    try:
+        response = await call_next(request)
+        status = str(response.status_code)
+        return response
+
+    finally:
+        if request.url.path != "/metrics":
+            elapsed = time.perf_counter() - start
+
+            REQUEST_COUNT.labels(
+                method=request.method,
+                endpoint=request.url.path,
+                status=status,
+            ).inc()
+
+            REQUEST_LATENCY.labels(
+                endpoint=request.url.path,
+            ).observe(elapsed)
+
+
+@app.get("/metrics", tags=["meta"])
+def metrics():
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 def _fkey(name):
