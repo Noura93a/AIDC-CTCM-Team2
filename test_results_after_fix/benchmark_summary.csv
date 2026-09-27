@@ -1,0 +1,2 @@
+model_name,n_items,tagging_classification_accuracy_pct,skill_mapping_accuracy_pct,retrieval_quality,structured_output_validity_pct,avg_latency_sec,total_tokens,est_total_cost_usd,est_items_per_hour,tag_semantic_f1_pct,tag_precision_pct,tag_recall_pct,skill_precision_pct,avg_tokens_per_sec,est_cost_per_1000_files_usd,difficulty_accuracy_pct,tag_overlap_strict_pct,skill_recall_at_n_pct
+Qwen/Qwen2.5-VL-3B-Instruct-AWQ,12,41.8,27.0,86.1% pool recall,100.0,55.6611,107195,0.05603,64.7,43.4,31.9,23.7,35.4,32.2658,4.6692,66.7,17.0,47.2
