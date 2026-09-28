@@ -134,9 +134,29 @@ Overall, Qwen demonstrated lower average end-to-end latency, higher estimated pr
 
 ## 10. Deployment and Operational Trade-offs
 
+The two evaluated models present different trade-offs between model quality, deployment complexity, infrastructure control, and operating cost.
+
+GPT-4o-mini provides a simpler operational model because inference is accessed through an external API. This reduces the need to manage GPU infrastructure, model serving, and orchestration within the project environment. It also demonstrated stronger performance on content tagging, semantic quality, and difficulty classification. However, it introduces dependency on an external provider and showed a higher estimated processing cost in the benchmark.
+
+Qwen/Qwen2.5-VL-3B-Instruct-AWQ requires a more complex deployment stack, including Docker, Kubernetes, GPU resources, and model-serving infrastructure. This increases operational responsibility but provides greater control over deployment configuration, infrastructure, and serving behavior. In the benchmark, Qwen achieved lower average end-to-end latency, higher estimated throughput, lower token usage, and lower estimated cost, while also performing better on several skills-mapping metrics.
+
+The trade-off therefore depends on deployment priorities. GPT-4o-mini is more suitable when stronger task quality and lower infrastructure-management overhead are the primary goals. Qwen is more suitable when infrastructure control, lower estimated operating cost, and self-managed deployment are higher priorities.
+
 ## 11. Production Handoff / AI Hub Demonstration
+
+Not applicable. The AI Hub demonstration was an optional component and was not included in the final project scope.
 
 ## 12. Lessons Learned
 
-## 13. Optional Stretch Work
+The project demonstrated that model selection should be based on a balanced assessment of task quality, operational efficiency, deployment complexity, and cost rather than on a single performance metric.
+
+A standardized evaluation process was critical to achieving a fair comparison. Applying the same dataset, prompt structure, output schema, and scoring methodology reduced evaluation variability and improved the reliability of the benchmark results.
+
+Combining benchmark results with infrastructure monitoring also provided a more complete view of model performance. Metrics such as latency, throughput, queue time, TTFT, and GPU behavior helped identify operational characteristics that are not visible through quality metrics alone.
+
+The results further showed that the two models offer different strengths. GPT-4o-mini performed better across several content-quality measures, while Qwen provided advantages in deployment control, estimated operating cost, and selected operational metrics.
+
+The key takeaway is that the most appropriate model depends on the priorities of the target use case, including the required balance between quality, cost, infrastructure control, and scalability.
+
+
 
