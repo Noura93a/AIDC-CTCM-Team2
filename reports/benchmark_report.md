@@ -24,7 +24,32 @@ The evaluation is based on the actual content of each file. File names are not t
 
 ## 3. Models Tested
 
+The benchmark evaluated two models representing distinct deployment strategies: a commercial API-based model and an open-weight model deployed within the project infrastructure.
+
+### GPT-4o-mini
+GPT-4o-mini was used as the commercial reference model to establish a quality baseline for content tagging and difficulty classification. It was evaluated using the same dataset, prompt structure, and output schema applied across the benchmark.
+
+### Qwen/Qwen2.5-VL-3B-Instruct-AWQ
+Qwen/Qwen2.5-VL-3B-Instruct-AWQ was selected as the open-weight deployment candidate. The AWQ-quantized variant was evaluated to assess whether a locally deployable model could deliver competitive task performance while providing greater control over infrastructure, serving configuration, and operational cost.
+
+Both models were evaluated under a consistent methodology to support a fair comparison across task quality and operational characteristics. Detailed benchmark results and deployment trade-offs are presented in the following sections.
+
 ## 4. Deployment Architecture
+
+The deployment architecture was designed to support reliable and reproducible serving of the open-weight model within the project infrastructure.
+
+The Qwen/Qwen2.5-VL-3B-Instruct-AWQ model was containerized using Docker and deployed on Kubernetes. The inference service was exposed through an API endpoint, allowing the evaluation pipeline and demo application to submit content for analysis and receive structured model outputs.
+
+The deployment stack includes:
+- Docker for packaging the model and application dependencies.
+- Kubernetes for container orchestration and service management.
+- vLLM as the inference engine for serving the Qwen model.
+- An API layer for submitting requests and returning structured responses.
+- Monitoring components for tracking service health, latency, throughput, GPU utilization, and memory usage.
+
+GPT-4o-mini was accessed through its external API and was used as the commercial reference model within the same evaluation workflow.
+
+This architecture enabled a consistent benchmark process while also allowing the open-weight model to be evaluated under realistic deployment conditions.
 
 ## 5. Evaluation Dataset and Annotation Process
 
