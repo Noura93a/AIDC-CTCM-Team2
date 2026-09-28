@@ -116,6 +116,22 @@ Overall, GPT-4o-mini demonstrated stronger performance on content tagging and di
 
 ## 9. Latency and Token/Cost Analysis
 
+The benchmark results showed distinct operational characteristics between GPT-4o-mini and Qwen/Qwen2.5-VL-3B-Instruct-AWQ.
+
+Qwen achieved a lower average end-to-end latency of 56.39 seconds per item, compared with 71.98 seconds for GPT-4o-mini. This resulted in a higher estimated processing throughput of 63.8 items per hour for Qwen, compared with 50.0 items per hour for GPT-4o-mini.
+
+GPT-4o-mini achieved a higher average generation speed of 105.67 tokens per second, compared with 29.16 tokens per second for Qwen. This indicates that token-generation speed and overall end-to-end processing latency represent different aspects of system performance.
+
+Token usage also differed substantially between the two models. Across the 12 evaluation items, Qwen processed a total of 107,195 tokens, while GPT-4o-mini recorded 287,621 total tokens. This difference is relevant when considering inference efficiency and cost alongside model quality.
+
+The estimated processing cost was lower for Qwen, at $4.79 per 1,000 files, compared with $6.22 per 1,000 files for GPT-4o-mini.
+
+Grafana monitoring was used to observe the operational behavior of the Qwen deployment during the load test. During the captured test window, the deployment reached up to three concurrent GPU requests. The dashboard was used to monitor Time to First Token (TTFT), Time per Output Token (TPOT), queue time, request activity, generation throughput, GPU-related behavior, and application errors.
+
+The observed monitoring data showed variation in TTFT and queue time during the test window, highlighting the importance of evaluating inference performance under concurrent workloads in addition to average benchmark latency.
+
+Overall, Qwen demonstrated lower average end-to-end latency, higher estimated processing throughput, lower total token usage, and lower estimated cost, while GPT-4o-mini achieved significantly higher token-generation speed. The combined benchmark and monitoring results provide a broader view of both model-level performance and deployed inference behavior.
+
 ## 10. Deployment and Operational Trade-offs
 
 ## 11. Production Handoff / AI Hub Demonstration
