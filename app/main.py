@@ -27,6 +27,7 @@ Run
 from __future__ import annotations
 import os, math, time, tempfile, requests as _requests, re as _re
 import pandas as pd
+import asyncio
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from contextlib import asynccontextmanager
 
@@ -59,6 +60,18 @@ REQUEST_LATENCY = Histogram(
     ["endpoint"],
 )
 
+MODEL_REQUEST_COUNT = Counter(
+    "model_requests_total",
+    "Total tagging requests by model and outcome",
+    ["model", "status"],
+)
+
+MODEL_REQUEST_LATENCY = Histogram(
+    "model_request_duration_seconds",
+    "End-to-end tagging request latency by model",
+    ["model"],
+    buckets=(1, 2.5, 5, 10, 20, 30, 60, 120, 180, 300, 600),
+)
 
 
 GOLD_SET_PATH = os.getenv(
@@ -175,6 +188,34 @@ def _run_one(extracted, filename, model_key, wall_tracker):
     wall_tracker.append(time.perf_counter() - t0)
     return result
 
+
+async def _run_one_async(extracted, filename, model_key, wall_tracker):
+    if model_key not in VALID_MODELS:
+        raise HTTPException(
+            400,
+            f"Unknown model '{model_key}'. Use: {', '.join(sorted(VALID_MODELS))}",
+        )
+
+    t0 = time.perf_counter()
+
+    if model_key == "openai":
+        from model_openai import run_file
+        result = await asyncio.to_thread(
+            run_file,
+            extracted,
+            filename,
+        )
+
+    elif model_key == "qwen":
+        from model_qwen import run_file_async
+        result = await run_file_async(
+            extracted,
+            filename,
+        )
+
+    wall_tracker.append(time.perf_counter() - t0)
+    return result
+
 def _build_tag_result(filename, content_type, result, model_id,
                       wall_sec, total_tokens) -> TagResult:
     gold   = _gold_for(filename)
@@ -222,20 +263,61 @@ def tag_file(req: TagRequest):
 async def tag_file_upload(file: UploadFile = File(...),
                           model: str = Form("qwen")):
     """Tag ONE file uploaded directly. model: 'openai' | 'qwen'"""
-    suffix = os.path.splitext(file.filename)[1]
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(await file.read())
-        tmp_path = tmp.name
+
+    metric_model = model if model in VALID_MODELS else "invalid"
+    metric_start = time.perf_counter()
+    metric_status = "error"
+
     try:
-        extracted = extract_content(tmp_path)
+        suffix = os.path.splitext(file.filename)[1]
+
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+
+        try:
+            extracted = await asyncio.to_thread(
+                extract_content,
+                tmp_path,
+            )
+        finally:
+            os.unlink(tmp_path)
+
+        wall_tracker = []
+
+        result = await _run_one_async(
+            extracted,
+            file.filename,
+            model,
+            wall_tracker,
+        )
+
+        wall_sec = wall_tracker[0] if wall_tracker else result["latency_sec"]
+        total_tok = result["prompt_tokens"] + result["completion_tokens"]
+
+        response = _build_tag_result(
+            file.filename,
+            extracted["content_type"],
+            result,
+            _model_id(model),
+            wall_sec,
+            total_tok,
+        )
+
+        metric_status = "success"
+        return response
+
     finally:
-        os.unlink(tmp_path)
-    wall_tracker = []
-    result    = _run_one(extracted, file.filename, model, wall_tracker)
-    wall_sec  = wall_tracker[0] if wall_tracker else result["latency_sec"]
-    total_tok = result["prompt_tokens"] + result["completion_tokens"]
-    return _build_tag_result(file.filename, extracted["content_type"],
-                             result, _model_id(model), wall_sec, total_tok)
+        elapsed = time.perf_counter() - metric_start
+
+        MODEL_REQUEST_COUNT.labels(
+            model=metric_model,
+            status=metric_status,
+        ).inc()
+
+        MODEL_REQUEST_LATENCY.labels(
+            model=metric_model,
+        ).observe(elapsed)
 
 
 @app.post("/v1/benchmark", response_model=BenchmarkReport, tags=["benchmark"])

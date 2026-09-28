@@ -40,7 +40,7 @@ spec:
             - name: TRANSFORMERS_CACHE
               value: "/model_cache"
             - name: VLLM_ENGINE_ITERATION_TIMEOUT_S
-              value: "300"
+              value: "600"
           volumeMounts:
             - name: hf-cache
               mountPath: /model_cache

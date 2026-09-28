@@ -1,0 +1,19 @@
+[theme]
+primaryColor = "#6D5DFB"
+baseRadius = "large"
+buttonRadius = "large"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#6D5DFB"
+backgroundColor = "#F7F9FD"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#172033"
+borderColor = "#DFE6EF"
+
+[theme.dark]
+primaryColor = "#7C6CFF"
+backgroundColor = "#080D19"
+secondaryBackgroundColor = "#151B2B"
+textColor = "#F8FAFC"
+borderColor = "#273244"
