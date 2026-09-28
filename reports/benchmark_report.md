@@ -36,18 +36,17 @@ Both models were evaluated under a consistent methodology to support a fair comp
 
 ## 4. Deployment Architecture
 
-
 The deployment architecture was designed to support reliable, reproducible, and GPU-enabled inference for the open-weight model within the project infrastructure.
 
-The application is containerized using Docker and built on an NVIDIA CUDA 12.4.1 runtime image. The container includes the Python runtime, model dependencies, content-processing utilities, and required project data resources. The application is served through Uvicorn on port 8000, with a container-level health check configured against the `/health` endpoint. :chatgpt-content-reference{index="0"}
+The application is containerized using Docker and built on an NVIDIA CUDA 12.4.1 runtime image. The container includes the Python runtime, model dependencies, content-processing utilities, and required project data resources. The application is served through Uvicorn on port 8000, with a container-level health check configured against the `/health` endpoint.
 
-The application is deployed on Kubernetes in the `ctcm` namespace using a single-replica deployment. The pod requests one NVIDIA GPU, 2 CPU cores, and 8 GiB of memory, with limits of 4 CPU cores and 16 GiB of memory. A persistent volume is used for the Hugging Face model cache, while Kubernetes readiness and liveness probes monitor the service through the `/health` endpoint. :chatgpt-content-reference{index="1"}
+The application is deployed on Kubernetes in the `ctcm` namespace using a single-replica deployment. The pod requests one NVIDIA GPU, 2 CPU cores, and 8 GiB of memory, with limits of 4 CPU cores and 16 GiB of memory. A persistent volume is used for the Hugging Face model cache, while Kubernetes readiness and liveness probes monitor the service through the `/health` endpoint.
 
-The service is exposed through a Kubernetes NodePort service on port 8000, using node port 30801 for external access to the application. :chatgpt-content-reference{index="2"}
+The service is exposed through a Kubernetes NodePort service on port 8000, using node port 30801 for external access to the application.
 
-The deployment also integrates the project skills taxonomy and reviewed golden dataset as application resources, while sensitive credentials such as the OpenAI API key are managed through Kubernetes Secrets. :chatgpt-content-reference{index="3"}
+The deployment also integrates the project skills taxonomy and reviewed golden dataset as application resources, while sensitive credentials such as the OpenAI API key are managed through Kubernetes Secrets.
 
-A shared prompting framework is used across the evaluated models to maintain consistency in model behavior and output structure. The system prompt requires structured JSON responses containing a content summary, predicted tags, difficulty level, predicted skills, confidence score, and learning-objective notes. :chatgpt-content-reference{index="4"}
+A shared prompting framework is used across the evaluated models to maintain consistency in model behavior and output structure. The system prompt requires structured JSON responses containing a content summary, predicted tags, difficulty level, predicted skills, confidence score, and learning-objective notes.
 
 This architecture supports a consistent evaluation workflow while enabling Qwen/Qwen2.5-VL-3B-Instruct-AWQ to be assessed under realistic deployment conditions within the project infrastructure.
 
