@@ -98,9 +98,9 @@ The final benchmark compared GPT-4o-mini and Qwen/Qwen2.5-VL-3B-Instruct-AWQ acr
 | Estimated Processing Throughput | 63.8 items/hour | 50.0 items/hour |
 | Estimated Cost per 1,000 Files | $4.79 | $6.22 |
 
-The results show different strengths across the two models. GPT-4o-mini achieved stronger overall tagging, semantic, and difficulty-classification performance, while Qwen demonstrated advantages in skills-mapping metrics, average latency, estimated processing throughput, and estimated cost per 1,000 files.
+The benchmark results highlight distinct strengths across the two models. GPT-4o-mini achieved higher tagging/classification accuracy, difficulty accuracy, and tag semantic F1. In contrast, Qwen achieved stronger skills-mapping metrics, lower average end-to-end latency, higher estimated processing throughput, and a lower estimated cost per 1,000 files.
 
-Both models achieved 100% structured-output validity.
+Both models achieved 100% structured-output validity, demonstrating consistent compliance with the required response schema.
 
 ## 8. Accuracy / Task Performance Analysis
 
