@@ -64,6 +64,16 @@ Model performance was evaluated based on the actual content of each file. File n
 
 ## 6. Evaluation Methodology
 
+Model performance was evaluated using a predefined scoring framework that compares each model output against the reviewed golden reference.
+
+For difficulty classification, the predicted label was compared directly with the reference label. Tagging performance was assessed using overlap-based and semantic measures, including tag precision, tag recall, and semantic F1. Skills mapping was evaluated by comparing the predicted skills with the reference skills using overlap, precision, and recall measures.
+
+Structured-output validity was also measured to verify that each model consistently returned the required response format.
+
+In addition to task-quality metrics, the benchmark captured operational measures such as end-to-end latency, token usage, generation speed, estimated inference cost, and estimated processing throughput.
+
+Results were calculated at the individual-file level and then aggregated by model to produce the final benchmark summary used for model comparison.
+
 ## 7. Benchmark Results
 
 ## 8. Accuracy / Task Performance Analysis
