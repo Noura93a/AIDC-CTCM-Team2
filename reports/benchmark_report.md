@@ -104,6 +104,16 @@ Both models achieved 100% structured-output validity, demonstrating consistent c
 
 ## 8. Accuracy / Task Performance Analysis
 
+The quality results indicate that GPT-4o-mini performed better on the core content-understanding tasks, particularly tagging/classification accuracy, difficulty classification, and tag semantic similarity.
+
+GPT-4o-mini achieved 50.1% tagging/classification accuracy compared with 41.8% for Qwen, while difficulty-classification accuracy reached 83.3% compared with 66.7%. It also achieved a higher tag semantic F1 score of 53.4%, indicating stronger alignment with the human-reviewed reference tags.
+
+Qwen, however, showed stronger performance on skills mapping. It achieved 27.0% skills-mapping accuracy compared with 24.5% for GPT-4o-mini, together with higher skill precision and recall.
+
+Both models achieved 100% structured-output validity, demonstrating reliable compliance with the required output schema.
+
+Overall, GPT-4o-mini demonstrated stronger performance on content tagging and difficulty classification, while Qwen showed a relative advantage in skills mapping. These results suggest that model selection should consider the priority of the target task rather than relying on a single overall metric.
+
 ## 9. Latency and Token/Cost Analysis
 
 ## 10. Deployment and Operational Trade-offs
