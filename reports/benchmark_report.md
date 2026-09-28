@@ -76,6 +76,32 @@ Results were calculated at the individual-file level and then aggregated by mode
 
 ## 7. Benchmark Results
 
+## 7. Benchmark Results
+
+The final benchmark compared GPT-4o-mini and Qwen/Qwen2.5-VL-3B-Instruct-AWQ across model-quality and operational metrics.
+
+| Metric | Qwen/Qwen2.5-VL-3B-Instruct-AWQ | GPT-4o-mini |
+|---|---:|---:|
+| Evaluation Items | 12 | 12 |
+| Tagging / Classification Accuracy | 41.8% | 50.1% |
+| Difficulty Accuracy | 66.7% | 83.3% |
+| Tag Semantic F1 | 43.4% | 53.4% |
+| Tag Precision | 31.9% | 29.1% |
+| Tag Recall | 23.7% | 24.4% |
+| Skills-Mapping Accuracy | 27.0% | 24.5% |
+| Skill Precision | 35.4% | 33.3% |
+| Skill Recall | 47.2% | 44.4% |
+| Retrieval Quality | 86.1% pool recall | 86.1% pool recall |
+| Structured-Output Validity | 100% | 100% |
+| Average Latency | 56.39 s | 71.98 s |
+| Average Generation Speed | 29.16 tokens/s | 105.67 tokens/s |
+| Estimated Processing Throughput | 63.8 items/hour | 50.0 items/hour |
+| Estimated Cost per 1,000 Files | $4.79 | $6.22 |
+
+The results show different strengths across the two models. GPT-4o-mini achieved stronger overall tagging, semantic, and difficulty-classification performance, while Qwen demonstrated advantages in skills-mapping metrics, average latency, estimated processing throughput, and estimated cost per 1,000 files.
+
+Both models achieved 100% structured-output validity.
+
 ## 8. Accuracy / Task Performance Analysis
 
 ## 9. Latency and Token/Cost Analysis
