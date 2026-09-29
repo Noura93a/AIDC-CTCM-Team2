@@ -2,16 +2,18 @@
 
 **Team 2 — AI Data Center Operations Capstone**
 
-CTCM is an AI-powered service that analyzes learning content and automatically generates structured educational metadata, including:
+CTCM is an AI-powered service that analyzes learning content and automatically generates structured educational metadata for content tagging and competency mapping.
+
+The service produces:
 
 - Content summaries
 - Topic tags
 - Difficulty levels
 - Competency / skill mappings
 - Confidence scores
-- Supporting notes
+- Three learning objectives
 
-The project combines **RAG, multimodal content extraction, local GPU inference, OpenAI inference, vLLM continuous batching, Docker, Kubernetes, Prometheus, Grafana, and Streamlit** in one end-to-end AI service.
+The project combines **multimodal content extraction, RAG, local GPU inference, OpenAI inference, vLLM continuous batching, Docker, Kubernetes, Prometheus, Grafana, and Streamlit** in one end-to-end AI system.
 
 ---
 
@@ -19,21 +21,11 @@ The project combines **RAG, multimodal content extraction, local GPU inference, 
 
 ### Streamlit Application
 
-The Streamlit interface allows users to upload learning content, select an inference backend, and view the generated tagging and competency-mapping results.
+The Streamlit interface allows users to upload learning content, select an inference backend, and inspect the generated tagging and competency-mapping results.
 
 <p align="center">
   <img src="docs/gifs/streamlit-demo.gif"
        alt="CTCM Streamlit Demo"
-       width="1000">
-</p>
-
-### Grafana Observability Dashboard
-
-The Grafana dashboard provides visibility into service availability, request rate, latency, errors, Qwen/vLLM inference activity, TTFT, TPOT, token throughput, and concurrent GPU requests.
-
-<p align="center">
-  <img src="docs/gifs/grafana-dashboard-demo.gif"
-       alt="CTCM Grafana Dashboard Demo"
        width="1000">
 </p>
 
@@ -103,18 +95,18 @@ The capstone deployment was tested on an **NVIDIA RTX A6000**.
 The model generates:
 
 - Content summary
-- Predicted tags
+- Predicted topic tags
 - Initial skill predictions
 
 ### Pass 2 — RAG Skill Refinement
 
-The service retrieves relevant competencies using the learning content and first-pass tags.
+The service retrieves relevant competencies from the skill taxonomy using the extracted learning content and first-pass tags.
 
 - Embedding model: `BAAI/bge-m3`
 - Skill taxonomy: **136 skills**
-- Retrieval pool: **Top 15 skills**
+- Retrieval pool: **Top 15 candidate skills**
 
-The model then selects its final grounded competency mappings from the retrieved pool.
+The model then selects its final competency mappings from the retrieved skill pool.
 
 ### Pass 3 — Difficulty Refinement
 
@@ -126,14 +118,17 @@ A focused inference pass classifies the learning content as:
 
 ---
 
-## Output
+## Structured Output
 
-A successful request returns structured output such as:
+A successful request returns structured output similar to:
 
 ```json
 {
   "content_summary": "...",
-  "predicted_tags": ["...", "..."],
+  "predicted_tags": [
+    "...",
+    "..."
+  ],
   "difficulty_level": "Intermediate",
   "predicted_skills": [
     "...",
@@ -142,11 +137,16 @@ A successful request returns structured output such as:
     "..."
   ],
   "confidence": 0.90,
-  "notes": "..."
+  "notes": "Identify ... • Apply ... • Evaluate ..."
 }
 ```
 
-The service is designed to return **exactly four competency mappings**.
+The service is designed to return:
+
+- Exactly **four competency mappings**
+- Exactly **three learning objectives** in the `notes` field
+
+Skill outputs are grounded against the defined competency taxonomy.
 
 ---
 
@@ -169,11 +169,43 @@ OCR support is included for image-based or scanned content.
 
 ---
 
-# Benchmark Evaluation
+## Evaluation Dataset & Methodology
 
-The final benchmark evaluated both inference backends on **12 representative learning files** using the reviewed Golden Set.
+The final benchmark used:
 
-## Final Performance & Accuracy
+- **12 representative learning-content files**
+- A reviewed Golden Set
+- The same task and output schema for both model backends
+- The same evaluation and scoring methodology
+- RAG-based skill grounding
+- Structured-output validation
+- Quality, latency, token, cost, and throughput measurements
+
+The benchmark compares each model output against the reviewed reference data.
+
+The evaluation covers:
+
+- Tagging / classification quality
+- Skill-mapping accuracy
+- Retrieval quality
+- Difficulty classification
+- Structured-output validity
+- End-to-end latency
+- Generation speed
+- Token usage
+- Estimated cost
+- Throughput
+- Concurrent request behavior
+
+The canonical final benchmark outputs are stored in:
+
+```text
+results_final/
+```
+
+---
+
+## Final Benchmark Results
 
 <p align="center">
   <img src="docs/images/benchmark-performance-accuracy-summary.png"
@@ -187,18 +219,16 @@ The final benchmark evaluated both inference backends on **12 representative lea
 | Skill Mapping Accuracy | **27.0%** | **24.5%** |
 | Retrieval Quality | **86.1%** | **86.1%** |
 | Structured Output Validity | **100%** | **100%** |
-| Average E2E Latency | **56.39 s** | **71.98 s** |
-| Throughput | **63.8 files/hr** | **50.0 files/hr** |
-| Tag Semantic F1 | **43.4%** | **53.4%** |
 | Difficulty Accuracy | **66.7%** | **83.3%** |
+| Tag Semantic F1 | **43.4%** | **53.4%** |
+| Average E2E Latency | **56.39 s** | **71.98 s** |
+| Generation Speed | **29.16 tok/s** | **105.67 tok/s** |
+| Total Tokens — 12 files | **107,195** | **287,621** |
+| Estimated Cost — 12 files | **$0.0575** | **$0.0746** |
+| Estimated Cost / 1,000 Files | **$4.79** | **$6.22** |
+| Estimated Throughput | **63.8 files/hr** | **50.0 files/hr** |
 
 These measurements are specific to the capstone benchmark workload and test environment.
-
-The canonical final benchmark outputs are stored in:
-
-```text
-results_final/
-```
 
 <details>
 <summary><strong>View full benchmark execution</strong></summary>
@@ -215,12 +245,40 @@ results_final/
 
 ---
 
-# Concurrent Benchmark
+## Benchmark Findings & Trade-offs
+
+The two inference backends showed different strengths.
+
+**GPT-4o-mini** achieved stronger results in several content-quality measures:
+
+- Higher tagging / classification accuracy
+- Higher semantic tag F1
+- Higher difficulty-classification accuracy
+- Higher generation speed
+
+However, it relies on an external API and therefore provides less infrastructure control.
+
+**Qwen** demonstrated advantages in several operational areas:
+
+- Higher skill-mapping accuracy in the final benchmark
+- Lower average end-to-end latency
+- Lower total token usage
+- Lower estimated cost
+- Higher estimated benchmark throughput
+- Full control over local deployment and inference infrastructure
+
+The local Qwen deployment requires additional operational responsibility, including GPU capacity, model serving, Docker, Kubernetes, monitoring, and scaling.
+
+The benchmark therefore demonstrates that model selection depends on the priorities of the use case rather than a single performance metric.
+
+---
+
+## Concurrent Benchmark
 
 Concurrency was evaluated with:
 
 - **3 simultaneous users**
-- **3 representative files**
+- **3 representative learning files**
 - Both Qwen and OpenAI
 - **9 requests per model**
 
@@ -240,6 +298,8 @@ Concurrency was evaluated with:
 | Throughput | **89 files/hr** | **100 files/hr** |
 
 Both model paths completed all concurrent requests successfully.
+
+The test also demonstrates an important trade-off: concurrent workloads improve total workload throughput, while individual request latency increases under load.
 
 <details>
 <summary><strong>Qwen concurrent benchmark details</strong></summary>
@@ -269,11 +329,11 @@ Both model paths completed all concurrent requests successfully.
 
 ---
 
-# Qwen Continuous Batching
+## Qwen Continuous Batching
 
-Qwen is served using vLLM `AsyncLLMEngine`.
+Qwen is served through vLLM `AsyncLLMEngine`.
 
-Three Qwen requests were launched simultaneously and completed successfully:
+Three Qwen requests were launched simultaneously:
 
 <p align="center">
   <img src="docs/images/concurrent-requests-validation.png"
@@ -281,7 +341,9 @@ Three Qwen requests were launched simultaneously and completed successfully:
        width="900">
 </p>
 
-During concurrent inference, the vLLM runtime reported:
+All three requests completed successfully.
+
+During the concurrent workload, the vLLM runtime reported:
 
 ```text
 Running: 3 reqs
@@ -294,44 +356,21 @@ Pending: 0 reqs
        width="100%">
 </p>
 
-This provides runtime evidence that multiple Qwen inference requests were active in the vLLM engine simultaneously.
+Prometheus also recorded three simultaneously running Qwen inference requests:
+
+<p align="center">
+  <img src="docs/images/qwen-running-requests-grafana.png"
+       alt="Qwen vLLM Concurrent Requests"
+       width="1000">
+</p>
+
+This provides runtime evidence that multiple Qwen inference requests were active in the vLLM engine at the same time.
 
 Individual application stages inside a request may still execute sequentially, while vLLM performs continuous batching across concurrent inference requests.
 
 ---
 
-# API
-
-The backend is implemented with **FastAPI**.
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/health` | Service health and loaded models |
-| `GET` | `/metrics` | Prometheus metrics |
-| `GET` | `/v1/models` | Available model backends |
-| `POST` | `/v1/tag/upload` | Upload and analyze one file |
-| `POST` | `/v1/tag` | Analyze a file through JSON |
-| `POST` | `/v1/benchmark` | Run benchmark comparison |
-| `GET` | `/v1/benchmark/summary` | Benchmark metric definitions |
-
-Example:
-
-```bash
-curl -X POST http://<HOST>:8000/v1/tag/upload \
-  -F "file=@data/Lecture - Pandas Basics.ipynb" \
-  -F "model=qwen"
-```
-
-Available model values:
-
-```text
-qwen
-openai
-```
-
----
-
-# Docker
+## Docker
 
 The GPU container is defined in:
 
@@ -369,13 +408,17 @@ docker push noura93/content-tagging:gpu-v1
 
 ---
 
-# Kubernetes Deployment
+## Kubernetes Deployment
+
+The CTCM service was deployed on Kubernetes together with Prometheus and Grafana in the `ctcm` namespace.
 
 Kubernetes manifests are stored under:
 
 ```text
 k8s/
 ```
+
+They include:
 
 ```text
 namespace.yaml
@@ -387,7 +430,7 @@ grafana.yaml
 secret.yaml
 ```
 
-Deploy:
+### Deploy
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
@@ -398,7 +441,17 @@ kubectl apply -f k8s/prometheus.yaml
 kubectl apply -f k8s/grafana.yaml
 ```
 
-## Lab NodePorts
+### Deployment Evidence
+
+The application and observability workloads were verified running successfully in the `ctcm` namespace.
+
+<p align="center">
+  <img src="docs/images/kubernetes-pods-running.png"
+       alt="CTCM Kubernetes Pods Running"
+       width="1000">
+</p>
+
+### Lab NodePorts
 
 | Service | NodePort |
 |---|---:|
@@ -408,7 +461,38 @@ kubectl apply -f k8s/grafana.yaml
 
 ---
 
-# Observability
+## API
+
+The backend is implemented with **FastAPI**.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/health` | Service health and loaded models |
+| `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/v1/models` | Available model backends |
+| `POST` | `/v1/tag/upload` | Upload and analyze one file |
+| `POST` | `/v1/tag` | Analyze content through JSON input |
+| `POST` | `/v1/benchmark` | Run benchmark comparison |
+| `GET` | `/v1/benchmark/summary` | Benchmark metric definitions |
+
+Example:
+
+```bash
+curl -X POST http://<HOST>:8000/v1/tag/upload \
+  -F "file=@data/Lecture - Pandas Basics.ipynb" \
+  -F "model=qwen"
+```
+
+Available model values:
+
+```text
+qwen
+openai
+```
+
+---
+
+## Observability
 
 The project uses:
 
@@ -417,19 +501,51 @@ The project uses:
 - Application-level metrics for both model paths
 - vLLM-native inference metrics for Qwen
 
-Application metrics include:
+### Grafana Dashboard
+
+<p align="center">
+  <img src="docs/gifs/grafana-dashboard-demo.gif"
+       alt="CTCM Grafana Observability Dashboard"
+       width="1000">
+</p>
+
+The dashboard includes panels for:
+
+- Service availability
+- Qwen request activity
+- OpenAI request activity
+- Error rate
+- End-to-end latency
+- Request throughput
+- Concurrent Qwen GPU requests
+- GPU KV-cache utilization
+- TTFT
+- TPOT
+- Queue time
+- Prompt and generation throughput
+- Token usage
+- Process memory
+
+### Application Metrics
+
+Examples:
 
 ```text
-model_requests_total
-model_request_duration_seconds
+model_requests_total{model="qwen",status="success"}
+model_requests_total{model="openai",status="success"}
+
+model_request_duration_seconds{model="qwen"}
+model_request_duration_seconds{model="openai"}
 ```
 
-These metrics are labeled by model, allowing Qwen and OpenAI requests to be compared separately.
+These metrics are labeled by model, allowing Qwen and OpenAI requests to be monitored separately.
 
-Qwen additionally exposes vLLM metrics for:
+### Qwen / vLLM Metrics
 
-- Concurrent requests
-- Waiting requests
+The local Qwen backend exposes metrics including:
+
+- Requests running
+- Requests waiting
 - GPU KV-cache utilization
 - Time to First Token (TTFT)
 - Time per Output Token (TPOT)
@@ -440,6 +556,14 @@ Qwen additionally exposes vLLM metrics for:
 
 vLLM and GPU metrics apply only to **Qwen**, because OpenAI inference is handled through an external API.
 
+### Qwen vs OpenAI Request Rate
+
+<p align="center">
+  <img src="docs/images/request-rate-qwen-openai.png"
+       alt="Qwen vs OpenAI Request Rate"
+       width="1000">
+</p>
+
 The final exported Grafana dashboard is stored in:
 
 ```text
@@ -448,9 +572,9 @@ observability/CTCM — Infrastructure & Inference Benchmark Dashboard.json
 
 ---
 
-# Service Indicators & Proposed Targets
+## Service Indicators & Proposed Targets
 
-The project's measured service indicators and proposed targets are documented in:
+The project's measured service indicators and proposed objectives are documented in:
 
 ```text
 observability/slo-targets.md
@@ -468,9 +592,9 @@ These are provisional objectives based on the measured capstone workload and are
 
 ---
 
-# Streamlit Application
+## Streamlit Application
 
-The interactive UI is located under:
+The interactive evaluation/demo interface is stored under:
 
 ```text
 demo/
@@ -489,25 +613,51 @@ Run:
 streamlit run streamlit_app.py
 ```
 
+Additional documentation is available in:
+
+```text
+demo/README_streamlit_demo.md
+```
+
 ---
 
-# Local Setup
+## Benchmark Report
 
-Clone:
+Detailed benchmark methodology, analysis, model trade-offs, and conclusions are documented in:
+
+```text
+reports/benchmark_report.md
+```
+
+The README provides a concise project overview, while the benchmark report contains the detailed evaluation analysis.
+
+---
+
+## AI Hub Scope
+
+> AI Hub deployment was optional for the final presentation and was deferred until after the presentation based on instructor guidance.
+
+The final capstone work therefore focuses on the implemented model deployment, evaluation, benchmarking, observability, concurrency testing, and demonstration interface.
+
+---
+
+## Local Setup
+
+### Clone
 
 ```bash
 git clone https://github.com/Noura93a/AIDC-CTCM-Team2.git
 cd AIDC-CTCM-Team2
 ```
 
-Create the environment:
+### Create Environment
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
-Install dependencies:
+### Install Dependencies
 
 ```bash
 pip install torch==2.5.1 \
@@ -516,7 +666,7 @@ pip install torch==2.5.1 \
 pip install -r app/requirements.txt
 ```
 
-Set environment variables:
+### Environment Variables
 
 ```bash
 export OPENAI_API_KEY="<your-openai-api-key>"
@@ -526,9 +676,9 @@ export SKILLS_CSV_PATH="$PWD/data/hrsd_data_ai_taxonomy.csv"
 export GOLD_SET_PATH="$PWD/data/Golden-set-Reviewed.xlsx"
 ```
 
-> Never commit a real API key or token to the repository.
+> Never commit a real API key, token, password, or credential to the repository.
 
-Start the API:
+### Start the API
 
 ```bash
 cd app
@@ -547,9 +697,9 @@ curl http://localhost:8000/health
 
 ---
 
-# Run the Benchmarks
+## Run the Benchmarks
 
-## Full Benchmark
+### Full Benchmark
 
 ```bash
 python evaluation/run_benchmark.py \
@@ -560,7 +710,7 @@ python evaluation/run_benchmark.py \
   --out ./results_final
 ```
 
-## Concurrent Benchmark
+### Concurrent Benchmark
 
 ```bash
 python evaluation/concurrent_benchmark.py
@@ -568,28 +718,28 @@ python evaluation/concurrent_benchmark.py
 
 ---
 
-# Repository Structure
+## Repository Structure
 
 ```text
 AIDC-CTCM-Team2/
-├── app/                  # FastAPI, extraction, models, RAG, scoring
-├── data/                 # Golden Set, taxonomy, benchmark content
-├── demo/                 # Streamlit application
+├── app/                  # API, extraction, inference, RAG and scoring
+├── data/                 # Golden Set, taxonomy and benchmark content
+├── demo/                 # Streamlit evaluation/demo application
 ├── docker/               # GPU Docker image
 ├── docs/
-│   ├── images/           # Screenshots and benchmark evidence
+│   ├── images/           # Benchmark and deployment evidence
 │   └── gifs/             # Streamlit and Grafana demo GIFs
 ├── evaluation/           # Full and concurrent benchmark scripts
-├── k8s/                  # Kubernetes + Prometheus + Grafana manifests
-├── observability/        # Grafana dashboard + SLI/SLO targets
-├── reports/              # Benchmark report
+├── k8s/                  # Kubernetes deployment and monitoring manifests
+├── observability/        # Grafana dashboard and SLI/SLO documentation
+├── reports/              # Detailed benchmark report
 ├── results_final/        # Canonical final benchmark outputs
 └── README.md
 ```
 
 ---
 
-# Additional Evidence
+## Additional Evidence
 
 <details>
 <summary><strong>Deployment readiness check</strong></summary>
@@ -621,7 +771,7 @@ The readiness script used strict development thresholds. Its historical `< 10 s`
 
 ---
 
-# Technologies
+## Technologies
 
 - Python 3.11
 - FastAPI
@@ -641,7 +791,7 @@ The readiness script used strict development thresholds. Its historical `< 10 s`
 
 ---
 
-# Security
+## Security
 
 Do not commit:
 
@@ -655,7 +805,7 @@ Keep the repository version of `k8s/secret.yaml` empty or placeholder-only and i
 
 ---
 
-# Team
+## Team
 
 **Team 2 — AI Data Center Operations Capstone**
 
