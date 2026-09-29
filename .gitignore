@@ -1,6 +1,23 @@
+# Python environment
 app/.venv/
 app/__pycache__/
 app/*.pyc
+**/__pycache__/
+**/*.pyc
+*.egg-info/
+
+# Secrets
 .env
-test_results/
-results/
+*.env
+.env.*
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.log

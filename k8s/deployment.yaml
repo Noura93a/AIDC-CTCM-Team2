@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-tagging
+  namespace: ctcm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: content-tagging
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  template:
+    metadata:
+      labels:
+        app: content-tagging
+    spec:
+      containers:
+        - name: content-tagging
+          image: noura93/content-tagging:gpu-v1
+          imagePullPolicy: Always
+          command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"] 
+          ports:
+            - containerPort: 8000
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ctcm-secrets
+                  key: openai-api-key
+            - name: SKILLS_CSV_PATH
+              value: "/data/hrsd_data_ai_taxonomy.csv"
+            - name: GOLD_SET_PATH
+              value: "/data/Golden-set-Reviewed.xlsx"
+            - name: HF_HOME
+              value: "/model_cache"
+            - name: TRANSFORMERS_CACHE
+              value: "/model_cache"
+            - name: VLLM_ENGINE_ITERATION_TIMEOUT_S
+              value: "600"
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /model_cache
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: "1"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+            timeoutSeconds: 120
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 300
+            periodSeconds: 300
+            failureThreshold: 3
+            timeoutSeconds: 120
+      volumes:
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: hf-cache-pvc
