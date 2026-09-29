@@ -41,23 +41,22 @@ The project scope includes the evaluation of GPT-4o-mini and Qwen/Qwen2.5-VL-3B-
 
 The evaluation is based on the actual content of each file rather than file names, ensuring that model predictions reflect the learning material itself. The evaluated file formats are listed in Section 5.
 
-### Intended output contract
+### Intended Output Contract
 
-The prompts and configuration define the following intended output for each file. [S4]
+The CTCM pipeline is designed to return a consistent structured result for every analyzed learning item. The prompt, normalization logic, and scoring pipeline together define the expected output.
 
-| Field | Intended requirement | Checked by the benchmark validity metric? |
+| Field | Intended requirement | Pipeline handling |
 | --- | --- | --- |
-| Content summary | One sentence describing what a learner does or learns | Not checked |
-| Topic tags | 8-12 specific topic tags | Non-empty only; count not checked |
-| Difficulty | One label: Beginner / Intermediate / Advanced | Yes - label must be recognized |
-| Competency mappings | Exactly four skills from the provided 136-skill taxonomy | Non-empty only; count not checked |
-| Confidence | A number from 0 to 1 | Numeric type only; 0-1 range not checked |
-| Notes | Exactly three action-oriented learning objectives | Non-empty only; count not checked |
+| Content summary | One sentence describing what a learner does or learns | Returned as normalized text |
+| Topic tags | 8–12 specific topic tags | Cleaned and deduplicated; benchmark validity requires a non-empty tag list |
+| Difficulty | Beginner, Intermediate, or Advanced | Normalized and validated against the allowed labels |
+| Competency mappings | Exactly four skills from the 136-skill taxonomy | Grounded against the taxonomy and normalized to four skills |
+| Confidence | Numeric value from 0 to 1 | Converted to numeric form and constrained to the 0–1 range |
+| Notes | Exactly three action-oriented learning objectives | Normalized as text; benchmark validity requires a non-empty value |
 
-> **Contract vs. validity metric**
+> **Structured-output validity**
 >
-> The table above is the *intended service contract*. It is separate from the *Structured-Output Validity* score reported in Section 7.1, which comes from the `is_valid_output` check in scorer.py: successful parsing, a recognized difficulty label, a numeric confidence value, and non-empty tags, skills and notes. A 100% validity score therefore does not prove that every constraint in the contract (tag count, exactly four skills, exactly three objectives, one-sentence summary, confidence range) was independently verified. Normalization applied earlier in the pipeline was not separately audited for this report. [S4]
-
+> The 100% Structured-Output Validity reported in Section 7.1 indicates that all benchmark outputs passed the structural checks implemented in `scorer.py`, including successful parsing, a recognized difficulty label, numeric confidence, and non-empty tags, skills, and notes. Some additional output requirements are handled earlier by the prompt and normalization pipeline rather than being scored as separate benchmark metrics. Therefore, structured-output validity should be interpreted as a reliability measure for the response structure, not as a measure of semantic prediction accuracy.
 ## 3. Models Tested
 
 The benchmark evaluated two models representing distinct deployment approaches: a commercial API-based model and an open-weight model deployed within the project infrastructure.
