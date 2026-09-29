@@ -1,2 +1,0 @@
-model_name,n_items,tagging_classification_accuracy_pct,skill_mapping_accuracy_pct,retrieval_quality,structured_output_validity_pct,avg_latency_sec,total_tokens,est_total_cost_usd,est_items_per_hour,difficulty_accuracy_pct,tag_overlap_strict_pct,skill_recall_at_n_pct
-Qwen/Qwen2.5-VL-3B-Instruct-AWQ,12,41.8,21.7,N/A (full list in prompt),100.0,8.0659,77451,0.009413,446.3,66.7,17.0,38.9
